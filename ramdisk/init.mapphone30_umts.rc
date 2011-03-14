@@ -1,0 +1,388 @@
+on early-boot
+
+# Adjust the out of memory thresholds to account for the larget
+# space on sholes.  These numbers are in pages (4k).  Must be kept
+# in sync with init.rc.  This must be done before the regular init.rc
+# since these properies can't change once set.
+    setprop ro.FOREGROUND_APP_MEM 3072
+    setprop ro.VISIBLE_APP_MEM 4608
+    setprop ro.SECONDARY_SERVER_MEM 9216
+    setprop ro.BACKUP_APP_MEM 9216
+    setprop ro.HOME_APP_MEM 9216
+    setprop ro.HIDDEN_APP_MEM 10752
+    setprop ro.CONTENT_PROVIDER_MEM 12288
+    setprop ro.EMPTY_APP_MEM 12288
+ 
+    class_start media_early_init
+
+on boot
+
+# Overwrite what init.rc selected for the memory killer params to match above.
+    write /sys/module/lowmemorykiller/parameters/minfree 3072,4608,9216,10752,12288,12288
+
+# Define Motorola DBVC ATVC Property defaults (failsafe properties)
+    setprop ro.sys.atvc_allow_netmon_usb 0
+    setprop ro.sys.atvc_allow_netmon_ih 0
+    setprop ro.sys.atvc_allow_res_core 0
+    setprop ro.sys.atvc_allow_res_panic 0
+    setprop ro.sys.atvc_allow_all_adb 0
+    setprop ro.sys.atvc_allow_all_core 0
+    setprop ro.sys.atvc_allow_efem 0
+    setprop ro.sys.atvc_allow_bp_log 0
+    setprop ro.sys.atvc_allow_ap_mot_log 0
+    setprop ro.sys.atvc_allow_gki_log 0
+
+# Change the ownership of led files.
+   chown system system /sys/class/leds/lcd-backlight/als
+   chown system system /sys/class/leds/lcd-backlight/pwm_mode
+   chown system system /sys/class/leds/lcd-backlight/brightness
+   chmod 0660 /sys/class/leds/lcd-backlight/brightness
+   chown system system /sys/class/leds/keyboard-backlight/brightness
+   chmod 0660 /sys/class/leds/keyboard-backlight/brightness
+   chown system system /sys/class/leds/button-backlight/brightness
+   chmod 0660 /sys/class/leds/button-backlight/blink
+   chown system system /sys/class/leds/button-backlight/blink
+   chmod 0660 /sys/class/leds/button-backlight/brightness
+   chown system system /sys/class/leds/red/blink
+   chown system system /sys/class/leds/red/brightness
+   chmod 0660 /sys/class/leds/red/brightness
+   chown system system /sys/class/leds/green/brightness
+   chmod 0660 /sys/class/leds/green/brightness
+   chmod 0660 /sys/class/leds/torch-flash/camera_strobe
+   chmod 0660 /sys/class/leds/torch-flash/flash_light
+   chown system system /sys/class/leds/torch-flash/camera_strobe
+   chown system system /sys/class/leds/torch-flash/flash_light
+   chown system system /sys/class/leds/spotlight/brightness
+   chown system system /sys/class/leds/blue/brightness
+   chmod 0660 /sys/class/leds/blue/brightness
+
+# Enable panic on softlockup
+    write /proc/sys/kernel/softlockup_panic 1
+
+# Start services
+    exec /system/bin/mot_boot_mode
+
+# Set core max size (2G)
+    setrlimit 4 2147483648 2147483648
+
+# The properties introduced by moto
+
+on property:sys.chargeonly.mode=1
+    start battd
+    start console
+    exec /system/bin/charge_only_mode
+
+# Power up to normal
+on property:tcmd.suspend=0
+    class_start pre-zygote_services
+    class_start zygote_services
+    class_start post-zygote_services
+
+# Power up to suspend 
+on property:tcmd.suspend=1
+    class_start pre-zygote_services
+    class_start post-zygote_services
+
+# Normal to suspend 
+on property:tcmd.suspend=2
+    class_stop zygote_services
+
+# Normal to suspend
+on property:tcmd.suspend=2
+    class_stop zygote_services
+
+# aplogd on at boot in emulator
+on property:ro.kernel.qemu=1
+    start aplogd
+
+on property:persist.service.aplogd.enable=1
+    start aplogd
+
+on property:persist.service.aplogd.enable=0
+    stop aplogd
+
+on property:ro.sys.atvc_allow_gki_log=1
+    start gkilogd
+
+on property:ro.sys.atvc_allow_gki_log=0
+    stop gkilogd
+
+# Moto safe power down
+on property:sys.reboot=1
+    stop ssmgrd
+    exec /system/bin/sleep 10
+    exec /system/bin/reboot
+
+on property:sys.shutdown=1
+    stop ssmgrd
+    exec /system/bin/sleep 10
+    exec /system/bin/reboot -p
+
+on property:init.svc.wpa_supplicant=stopped
+    stop dhcpcd
+
+# The following services are added by moto
+
+# Set property strings for ATVC logging
+# This conditionally sets :
+# ro.sys.atvc_allow_bp_log
+# ro.sys.atvc_allow_gki_log
+# ro.sys.atvc_allow_ap_mot_log
+# ro.sys.atvc_allow_all_core
+# ro.sys.atvc_allow_res_core
+# ro.sys.atvc_allow_res_panic
+# ro.sys.atvc_allow_efem
+# ro.sys.atvc_allow_netmon_usb
+# ro.sys.atvc_allow_netmon_ih
+# ro.sys.atvc_allow_all_adb
+service atvc /system/bin/dbvc_atvc_property_set
+    class pre-zygote_services
+    user system
+    group system
+    oneshot
+
+#service watchdogd  /system/bin/watchdogd
+#    class pre-zygote_services
+
+service telnet /system/bin/telnetd
+    class pre-zygote_services
+    oneshot
+
+service usbd /system/bin/usbd
+    class pre-zygote_services
+
+service nvm-daemon /system/usr/bin/nvm_daemon
+    class pre-zygote_services
+    user radio
+    group radio
+
+# start start_modem.sh to for development purpose 
+service start_modem /system/bin/sh /system/usr/bin/start_modem.sh
+    class pre-zygote_services
+    oneshot
+
+# start commdrv pds script
+service start_commdrv /system/bin/sh /system/etc/motorola/comm_drv/commdrv_fs.sh
+    class pre-zygote_services
+    oneshot
+    user radio
+    group radio
+
+service gkisystem /system/bin/gkisystem
+    class pre-zygote_services
+    socket location_shim stream 660 radio system
+    socket gpshal_socket stream 660 radio system
+    socket opprofdaemon  stream 660 radio system
+    socket gkilog_sock   stream 660 radio radio
+    group radio system mot_accy mot_secclkd
+    onrestart exec /system/usr/bin/gki_pd_notifier
+
+service rild_tcmd /system/bin/rild_tcmd
+    class pre-zygote_services
+    socket rild_tcmd stream 0660 radio mot_tcmd
+    user radio
+    group radio
+
+
+service battd /system/bin/battd
+    class pre-zygote_services
+    socket battdsock stream 0660 mot_accy mot_accy
+    user root
+    group mot_accy mot_pwric
+    oneshot
+
+service catcommands /system/bin/catcommands
+    class pre-zygote_services
+    group radio
+
+service bplogd_daemon /system/usr/bin/bplogd_daemon
+    class pre-zygote_services
+    socket dlog_cmds stream 660 radio log
+    socket bp_pd_status stream 660 radio log
+    socket bp_aol_cmd stream 666 radio log
+    user radio
+    group radio inet log sdcard_rw
+    oneshot
+
+service modemlog /system/bin/modemlog
+   class pre-zygote_services
+   oneshot
+
+service ssmgrd /system/xbin/ssmgrd
+    class post-zygote_services
+    group radio input mot_pwric
+    oneshot
+
+service hciattach /system/bin/hciattach \
+    -n -t 10 /dev/ttyS1 texasalt 3000000 flow
+    class post-zygote_services
+    user bluetooth
+    group bluetooth net_bt_admin
+    disabled
+    
+service tcmd /system/bin/tcmd
+    class post-zygote_services
+    group mot_tcmd radio mot_pwric input system log camera graphics mot_accy sdcard_rw audio inet bluetooth wifi compass net_bt_admin mot_tombstone mot_tpapi mount
+    socket local_tcmd stream 0660 mot_tcmd mot_tcmd
+    socket batch_socket stream 0600 mot_tcmd mot_tcmd
+    oneshot
+
+service tcmdhelp /system/bin/tcmdhelp
+    class post-zygote_services
+    socket tcmdhelp stream 0600 mot_tcmd
+    oneshot
+    disabled
+
+# turn on wifi for tcmd step one
+on property:tcmd.load_wlan=1
+    insmod /system/lib/modules/tiwlan_drv.ko
+
+# turn on wifi for tcmd step two
+on property:tcmd.load_wlan=2
+    start wlan_loader
+
+# turn on wifi for tcmd step three
+on property:tcmd.load_wlan=3
+    exec /system/bin/ifconfig tiwlan0 up
+
+# turn off wifi for tcmd step one
+on property:tcmd.unload_wlan=1
+    exec /system/bin/ifconfig tiwlan0 down
+
+# turn off wifi for tcmd step two
+on property:tcmd.unload_wlan=2
+    exec /system/bin/rmmod tiwlan_drv
+
+# turn on bluetooth for tcmd
+on property:tcmd.bt_mod=1
+    insmod /system/lib/modules/wl127x-test.ko
+
+#turn off bluetooth for tcmd
+on property:tcmd.bt_mod=0
+    exec /system/bin/rmmod wl127x_test
+
+#execute tcmdhelp
+on property:tcmd.start_tcmdhelp=1
+    start tcmdhelp
+
+service panic_daemon /system/usr/bin/panic_daemon
+    class post-zygote_services
+    user radio
+    group radio system graphics sdcard_rw
+    socket panic_daemon stream 660 radio radio
+    onrestart exec /system/bin/reboot
+
+# Ecompass daemon
+service akmd2 /system/bin/akmd2
+    class post-zygote_services
+    user compass
+    group compass misc input
+
+service wlan_loader /system/bin/wlan_loader \
+    -f /system/etc/wifi/fw_wlan1271.bin -i /system/etc/wifi/tiwlan.ini \
+    -e /pds/wifi/nvs_map.bin
+    class post-zygote_services
+    disabled
+    oneshot
+
+service wpa_supplicant /system/bin/wpa_supplicant \
+    -Dtiwlan0 -itiwlan0 -c/data/misc/wifi/wpa_supplicant.conf
+    class post-zygote_services
+#   we will start as root and wpa_supplicant will switch to user wifi
+#   after setting up the capabilities required for WEXT
+#   user wifi
+#   group wifi inet keystore
+    socket wpa_tiwlan0 dgram 660 wifi wifi
+    disabled
+    oneshot
+
+service dhcpcd /system/bin/dhcpcd -ABKL tiwlan0
+    class post-zygote_services
+    disabled
+    oneshot
+
+service autoip /system/bin/dhcpcd -BK tiwlan0
+    class post-zygote_services
+    disabled
+    oneshot
+
+service baseimage /system/bin/dspexec -v -T /system/lib/dsp/baseimage.dof
+    class media_early_init
+    user  media
+    group media graphics
+    oneshot
+
+service pvrsrv /system/bin/pvrsrvinit
+    class post-zygote_services
+    user root
+    oneshot
+
+service pppd /system/xbin/pppd silent ipparam dun plugin /system/lib/libpppd_plugin.so
+    class post-zygote_services
+    user root
+    disabled
+    oneshot
+
+service ulogd /system/xbin/ulogd
+    class post-zygote_services
+    user root
+    disabled
+    oneshot
+
+service firewall /system/bin/firewall.sh
+    class post-zygote_services
+    user root
+    disabled
+    oneshot
+
+service locDrv /system/usr/bin/brcm_guci_drv -config /system/etc/gpsconfig.xml
+    class post-zygote_services
+    user radio
+    group radio inet sdcard_rw
+
+service pm_init /system/bin/sh /system/usr/bin/pm_init.sh
+    class post-zygote_services
+    oneshot
+
+# aplogd is controlled by the persist.service.aplogd.enable system property
+service aplogd /system/bin/aplogd
+    class post-zygote_services
+    socket ap_aol_cmd  stream 666 system system
+    user log
+    group log system sdcard_rw
+    oneshot
+
+service gkilogd /system/bin/gkilogd
+    class post-zygote_services
+    socket gki_aol_cmd stream 660 radio log
+    user radio
+    group radio log sdcard_rw
+   
+service fmradio /system/bin/fmradioserver
+    class post-zygote_services
+    disabled
+    group bluetooth
+
+service secclkd /system/bin/secclkd
+    class post-zygote_services
+    socket secclk_socket stream 660 mot_secclkd mot_secclkd
+    user mot_tpapi
+    group mot_tpapi mot_sec_rtc mot_secclkd
+    oneshot
+
+service dlnasrv /system/bin/dlnasrv
+    class post-zygote_services
+    disabled
+    oneshot
+
+service dund_dialup /system/bin/dund --listen --channel=6 --nodetach --dialup
+    class post-zygote_services
+    disabled
+    oneshot
+
+# bugtogo is triggered by the KEY_LEFTSHIFT and KEY_DEL keycodes
+service bugtogo /system/bin/bugtogo
+    disabled
+    user root
+    oneshot
+    keycodes 42 14
