@@ -3,11 +3,9 @@ export PATH=/system/bin:/system/xbin:/sbin
 mount /dev/block/mmcblk0p1 /sdcard
 if [ -e /sdcard/adb_bootup ] ; then
    [[ -e /sdcard/sdcard_bootup ]] && /system/xbin/busybox echo /dev/block/mmcblk0p1 >/sys/devices/platform/usb_mass_storage/lun0/file
-   /system/xbin/busybox echo msc_adb >/dev/usb_device_mode && getprop > /sdcard/env.log
+   /system/xbin/busybox echo msc_adb >/dev/usb_device_mode
 	 /sbin/adbd &
-  /system/xbin/busybox echo 255 >/sys/class/leds/blue/brightness
   /system/xbin/busybox sleep 10
-  /system/xbin/busybox echo 0 >/sys/class/leds/blue/brightness
 fi
 if [ -e /data/.recovery_mode ] ; then
    rm /data/.recovery_mode ; sync
