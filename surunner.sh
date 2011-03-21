@@ -2,10 +2,10 @@
 mount -oremount,rw /dev/block/mtdblock7 /system
 cp -r /sdcard/modrecovery/files/busybox /system/xbin/
 cp -r /sdcard/modrecovery/files/ramdisk.tar /system/
-cp -r /sdcard/modrecovery/files/2nd-init /system/
-cp -r /sdcard/modrecovery/files/mot_boot_mode.bin /system/
-cp -r /sdcard/modrecovery/files/mot_boot_mode.p1.sh /system/
-cp -r /sdcard/modrecovery/files/mot_boot_mode.p2.sh /system/
+cp -r /sdcard/modrecovery/files/2nd-init /system/bin/
+cp -r /sdcard/modrecovery/files/mot_boot_mode.bin /system/bin/
+cp -r /sdcard/modrecovery/files/mot_boot_mode.p1.sh /system/bin/
+cp -r /sdcard/modrecovery/files/mot_boot_mode.p2.sh /system/bin/
 rm /system/bin/mot_boot_mode
 mkdir /system/lw
 mkdir /system/lw2
