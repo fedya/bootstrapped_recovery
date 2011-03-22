@@ -1,16 +1,8 @@
-How to use it.
+How install modrecovery for Motorola Charm
 
-mkdir -p modrecovery/files
-put here 
-
-/modrecovery/surunner.sh
-modrecovery/files/mot_boot_mode.p2.sh
-modrecovery/files/mot_boot_mode.p1.sh
-modrecovery/files/ramdisk.tar
-modrecovery/files/busybox
-modrecovery/files/2nd-init
-modrecovery/files/mot_boot_mode.bin
-modrecovery/rr.sh
-
-if you want to reboot into recovery
-sh rr.sh
+1.Unparck modrecovery.tar.gz in root of your sdcard
+2.cd /sdcard/modrecovery/
+3.sh surunner.sh
+4.wait for a few seconds
+5.sh rr.sh
+6.now you into recovery clockwork 2.5.1.8
