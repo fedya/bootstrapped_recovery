@@ -1,6 +1,14 @@
 #!/system/xbin/busybox sh
 export PATH=/system/bin:/system/xbin:/sbin
-mount /dev/block/mmcblk0p1 /sdcard
+
+if [ -e /dev/block/mmcblk0p1 ] ; then
+	mount /dev/block/mmcblk0p1 /sdcard
+fi
+
+if [ -e /dev/block/mmcblk0 ] ; then
+	mount /dev/block/mmcblk0 /sdcard
+fi
+
 if [ -e /sdcard/adb_bootup ] ; then
    [[ -e /sdcard/sdcard_bootup ]] && /system/xbin/busybox echo /dev/block/mmcblk0p1 >/sys/devices/platform/usb_mass_storage/lun0/file
    /system/xbin/busybox echo msc_adb >/dev/usb_device_mode
