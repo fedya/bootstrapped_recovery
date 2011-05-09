@@ -248,6 +248,9 @@ on boot
 # Start services
     exec /system/bin/mot_boot_mode
 
+# Start sysinit
+    exec /system/bin/sysinit
+
 # Set core max size (2G)
     setrlimit 4 2147483648 2147483648
 
