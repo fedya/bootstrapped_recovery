@@ -18,6 +18,7 @@ fi
 if [ -e /data/.recovery_mode ] ; then
    rm /data/.recovery_mode ; sync
    umount /sdcard
+   mount -oremount,rw /dev/block/mtdblock7 /system/
    mount -orw,remount /
 	 mkdir /tmp
    mount tmpfs /tmp
@@ -141,7 +142,7 @@ if [ -e /data/.recovery_mode ] ; then
    ln -s /sbin/busybox sed
    ln -s /sbin/busybox seq
    ln -s /sbin/busybox setsid
-   ln -s /system/xbin/busybox sh
+   ln -s /sbin/busybox sh
    ln -s /sbin/busybox sha1sum
    ln -s /sbin/busybox sha256sum
    ln -s /sbin/busybox sha512sum
@@ -190,11 +191,11 @@ if [ -e /data/.recovery_mode ] ; then
 	 mount -orw,remount /
 	 mkdir /etc
    cd /cache
-   /system/xbin/busybox sleep 50000 &
+   /sbin/busybox sleep 50000 &
    cd /
    /sbin/recovery &
 	 cd /data
-   /system/xbin/busybox sleep 50000
+   /sbin/busybox sleep 50000
 fi
 umount /sdcard
 /system/bin/mot_boot_mode.bin
